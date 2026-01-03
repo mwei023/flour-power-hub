@@ -57,7 +57,10 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
           </div>
           <div className="text-right">
             <p className="text-lg font-bold font-mono text-foreground">
-              {transaction.totalPrice}
+              {typeof transaction.totalPrice === 'number'
+                ? `KSh ${transaction.totalPrice.toLocaleString()}`
+                : `KSh ${Number(transaction.totalPrice || 0).toLocaleString()}`
+              }
             </p>
             <span className={cn("grain-badge text-[10px]", paymentBadgeClass[transaction.paymentMethod])}>
               {transaction.paymentMethod.toUpperCase()}

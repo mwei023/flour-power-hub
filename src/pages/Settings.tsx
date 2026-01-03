@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Smartphone, DollarSign, History, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Smartphone, DollarSign, History, AlertTriangle, Building, Receipt } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getTransactions, getExpenses, getTodaySummary } from '@/lib/storage';
+import { transactionApi, expenseApi } from '@/lib/api';
+import { Transaction, Expense } from '@/types';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 export default function Settings() {
@@ -11,50 +13,61 @@ export default function Settings() {
   const [monthlyStats, setMonthlyStats] = useState({ income: 0, expenses: 0, profit: 0 });
 
   useEffect(() => {
-    const transactions = getTransactions();
-    const expenses = getExpenses();
+    const fetchStats = async () => {
+      try {
+        // Fetch all transactions and expenses from API
+        const [transactions, expenses] = await Promise.all([
+          transactionApi.getAll(),
+          expenseApi.getAll(),
+        ]);
 
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+        const now = new Date();
+        const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+        const monthStart = startOfMonth(now);
+        const monthEnd = endOfMonth(now);
 
-    // Weekly calculations
-    const weekTransactions = transactions.filter(t => {
-      const date = new Date(t.createdAt);
-      return date >= weekStart && date <= weekEnd && t.paymentMethod !== 'credit';
-    });
-    const weekExpenses = expenses.filter(e => {
-      const date = new Date(e.createdAt);
-      return date >= weekStart && date <= weekEnd;
-    });
-    const weekIncome = weekTransactions.reduce((sum, t) => sum + t.totalPrice, 0);
-    const weekExpenseTotal = weekExpenses.reduce((sum, e) => sum + e.amount, 0);
+        // Weekly calculations
+        const weekTransactions = transactions.filter((t: Transaction) => {
+          const date = new Date(t.createdAt);
+          return date >= weekStart && date <= weekEnd && t.paymentMethod !== 'credit';
+        });
+        const weekExpenses = expenses.filter((e: Expense) => {
+          const date = new Date(e.createdAt);
+          return date >= weekStart && date <= weekEnd;
+        });
+        const weekIncome = weekTransactions.reduce((sum: number, t: Transaction) => sum + t.totalPrice, 0);
+        const weekExpenseTotal = weekExpenses.reduce((sum: number, e: Expense) => sum + e.amount, 0);
 
-    setWeeklyStats({
-      income: weekIncome,
-      expenses: weekExpenseTotal,
-      profit: weekIncome - weekExpenseTotal,
-    });
+        setWeeklyStats({
+          income: weekIncome,
+          expenses: weekExpenseTotal,
+          profit: weekIncome - weekExpenseTotal,
+        });
 
-    // Monthly calculations
-    const monthTransactions = transactions.filter(t => {
-      const date = new Date(t.createdAt);
-      return date >= monthStart && date <= monthEnd && t.paymentMethod !== 'credit';
-    });
-    const monthExpenses = expenses.filter(e => {
-      const date = new Date(e.createdAt);
-      return date >= monthStart && date <= monthEnd;
-    });
-    const monthIncome = monthTransactions.reduce((sum, t) => sum + t.totalPrice, 0);
-    const monthExpenseTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+        // Monthly calculations
+        const monthTransactions = transactions.filter((t: Transaction) => {
+          const date = new Date(t.createdAt);
+          return date >= monthStart && date <= monthEnd && t.paymentMethod !== 'credit';
+        });
+        const monthExpenses = expenses.filter((e: Expense) => {
+          const date = new Date(e.createdAt);
+          return date >= monthStart && date <= monthEnd;
+        });
+        const monthIncome = monthTransactions.reduce((sum: number, t: Transaction) => sum + t.totalPrice, 0);
+        const monthExpenseTotal = monthExpenses.reduce((sum: number, e: Expense) => sum + e.amount, 0);
 
-    setMonthlyStats({
-      income: monthIncome,
-      expenses: monthExpenseTotal,
-      profit: monthIncome - monthExpenseTotal,
-    });
+        setMonthlyStats({
+          income: monthIncome,
+          expenses: monthExpenseTotal,
+          profit: monthIncome - monthExpenseTotal,
+        });
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    fetchStats();
   }, []);
 
   const formatCurrency = (amount: number) => `KSh ${amount.toLocaleString()}`;
@@ -75,6 +88,33 @@ export default function Settings() {
           <CardContent>
             <p className="text-3xl font-bold font-mono text-info">9778129</p>
             <p className="text-sm text-muted-foreground mt-1">Share with customers for mobile payments</p>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link to="/tenders">
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/5 transition-colors cursor-pointer">
+                <Building className="w-5 h-5 text-primary" />
+                <div className="flex-1">
+                  <p className="font-medium">Manage Tenders</p>
+                  <p className="text-sm text-muted-foreground">School and church contracts</p>
+                </div>
+              </div>
+            </Link>
+            <Link to="/expenses">
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/5 transition-colors cursor-pointer">
+                <Receipt className="w-5 h-5 text-primary" />
+                <div className="flex-1">
+                  <p className="font-medium">Log Expenses</p>
+                  <p className="text-sm text-muted-foreground">Track cash withdrawals</p>
+                </div>
+              </div>
+            </Link>
           </CardContent>
         </Card>
 

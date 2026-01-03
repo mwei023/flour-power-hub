@@ -5,21 +5,67 @@ import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
-import { getTodayTransactions, getTodaySummary, getCreditCustomers } from '@/lib/storage';
-import { Transaction, DailySummary, Customer } from '@/types';
+import { transactionApi, customerApi, reportApi } from '@/lib/api';
+import { Transaction, Customer, DailySummary } from '@/types';
+import { toast } from 'sonner';
 
 export default function Index() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [creditCustomers, setCreditCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTransactions(getTodayTransactions());
-    setSummary(getTodaySummary());
-    setCreditCustomers(getCreditCustomers());
+    fetchDashboardData();
   }, []);
 
-  const totalCredit = creditCustomers.reduce((sum, c) => sum + c.creditBalance, 0);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch today's transactions and summary in parallel
+      const [todayTransactions, dailySummary, allCustomers] = await Promise.allSettled([
+        transactionApi.getToday(),
+        reportApi.getDailySummary(),
+        customerApi.getAll(),
+      ]);
+
+      // Handle transaction results
+      if (todayTransactions.status === 'fulfilled') {
+        setTransactions(todayTransactions.value);
+      } else {
+        console.error('Failed to fetch transactions:', todayTransactions.reason);
+        toast.error('Failed to load transactions');
+        setTransactions([]);
+      }
+
+      // Handle summary results
+      if (dailySummary.status === 'fulfilled') {
+        setSummary(dailySummary.value);
+      } else {
+        console.error('Failed to fetch daily summary:', dailySummary.reason);
+        toast.error('Failed to load daily summary');
+        setSummary(null);
+      }
+
+      // Handle customer results
+      let creditCusts: Customer[] = [];
+      if (allCustomers.status === 'fulfilled') {
+        creditCusts = allCustomers.value.filter(c => c.credit_balance > 0);
+      } else {
+        console.error('Failed to fetch customers:', allCustomers.reason);
+        toast.error('Failed to load customers');
+      }
+      setCreditCustomers(creditCusts);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalCredit = creditCustomers.reduce((sum, c) => sum + c.credit_balance, 0);
 
   const formatCurrency = (amount: number) => `KSh ${amount.toLocaleString()}`;
 
@@ -37,7 +83,7 @@ export default function Index() {
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Posho Mill</h1>
+              <h1 className="text-2xl font-bold text-foreground"> Amani Millers</h1>
               <p className="text-sm text-muted-foreground">{currentDate}</p>
             </div>
             <Link to="/new-transaction">
@@ -141,3 +187,4 @@ export default function Index() {
     </div>
   );
 }
+

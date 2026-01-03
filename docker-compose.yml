@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: poshomill-postgres
+    environment:
+      POSTGRES_DB: poshomill
+      POSTGRES_USER: mwei
+      POSTGRES_PASSWORD: poshomill123
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mwei -d poshomill"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - poshomill-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: poshomill-backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: poshomill
+      DB_USER: mwei
+      DB_PASSWORD: poshomill123
+      NODE_ENV: development
+      PORT: 3001
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - poshomill-network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+
+networks:
+  poshomill-network:
+    driver: bridge

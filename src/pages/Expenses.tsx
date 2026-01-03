@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Expense } from '@/types';
-import { getExpenses, saveExpense, generateId, getTodayExpenses } from '@/lib/storage';
+import { expenseApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+
 
 type ExpenseCategory = Expense['category'];
 
@@ -25,18 +26,30 @@ const categories: { id: ExpenseCategory; label: string; icon: typeof ShoppingBag
 export default function Expenses() {
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [todayExpenses, setTodayExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('other');
 
   useEffect(() => {
-    setExpenses(getExpenses());
-    setTodayExpenses(getTodayExpenses());
+    fetchExpenses();
   }, []);
 
-  const handleAddExpense = () => {
+  const fetchExpenses = async () => {
+    try {
+      setIsLoading(true);
+      const data = await expenseApi.getAll();
+      setExpenses(data);
+    } catch (error) {
+      console.error('Failed to fetch expenses:', error);
+      toast({ title: 'Failed to load expenses', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddExpense = async () => {
     const numAmount = Number(amount);
     if (!numAmount || numAmount <= 0) {
       toast({ title: 'Enter valid amount', variant: 'destructive' });
@@ -47,25 +60,30 @@ export default function Expenses() {
       return;
     }
 
-    const expense: Expense = {
-      id: generateId(),
-      amount: numAmount,
-      reason: reason.trim(),
-      category,
-      createdAt: new Date(),
-    };
-
-    saveExpense(expense);
-    setExpenses(getExpenses());
-    setTodayExpenses(getTodayExpenses());
-    setAmount('');
-    setReason('');
-    setCategory('other');
-    setIsAddOpen(false);
-    toast({ title: 'Expense recorded!' });
+    try {
+      await expenseApi.create({
+        amount: numAmount,
+        reason: reason.trim(),
+        category,
+      });
+      await fetchExpenses();
+      setAmount('');
+      setReason('');
+      setCategory('other');
+      setIsAddOpen(false);
+      toast({ title: 'Expense recorded!' });
+    } catch (error) {
+      console.error('Failed to add expense:', error);
+      toast({ title: 'Failed to add expense', variant: 'destructive' });
+    }
   };
 
+  // Calculate today's expenses
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayExpenses = expenses.filter(e => new Date(e.createdAt) >= today);
   const todayTotal = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+
 
   const formatCurrency = (amt: number) => `KSh ${amt.toLocaleString()}`;
 

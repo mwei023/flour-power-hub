@@ -10,18 +10,13 @@ import { GrainSelector } from '@/components/transaction/GrainSelector';
 import { PaymentSelector } from '@/components/transaction/PaymentSelector';
 import { QuickKiloButtons } from '@/components/transaction/QuickKiloButtons';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  GrainType, 
-  PaymentMethod, 
-  MillingCount, 
-  GRAIN_PRICES,
-  Transaction 
-} from '@/types';
-import { saveTransaction, generateId, saveCustomer, updateCustomerCredit, getCustomers } from '@/lib/storage';
+import { GrainType, PaymentMethod, MillingCount, GRAIN_PRICES } from '@/types';
+import { transactionApi, customerApi } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function NewTransaction() {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   const [grainType, setGrainType] = useState<GrainType | null>(null);
   const [kilos, setKilos] = useState<number>(0);
@@ -30,6 +25,7 @@ export default function NewTransaction() {
   const [customerName, setCustomerName] = useState('');
   const [pricePerKilo, setPricePerKilo] = useState<number>(0);
   const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [submitting, setSubmitting] = useState(false);
 
   // Calculate price when inputs change
   useEffect(() => {
@@ -49,60 +45,76 @@ export default function NewTransaction() {
 
   const showMillingCountOption = grainType === 'wheat' || grainType === 'wimbi';
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!grainType) {
-      toast({ title: 'Select grain type', variant: 'destructive' });
+      uiToast({ title: 'Select grain type', variant: 'destructive' });
       return;
     }
     if (kilos <= 0) {
-      toast({ title: 'Enter kilos', variant: 'destructive' });
+      uiToast({ title: 'Enter kilos', variant: 'destructive' });
       return;
     }
 
-    const name = customerName.trim() || 'Walk-in Customer';
+    try {
+      setSubmitting(true);
+      
+      const name = customerName.trim() || 'Walk-in Customer';
 
-    // If credit payment, save/update customer
-    if (paymentMethod === 'credit') {
-      const existingCustomers = getCustomers();
-      let existingCustomer = existingCustomers.find(
-        c => c.name.toLowerCase() === name.toLowerCase()
-      );
+      // Create transaction via API
+      await transactionApi.create({
+        customer_name: name,
+        grain_type: grainType,
+        kilos,
+        milling_count: millingCount,
+        price_per_kilo: pricePerKilo,
+        total_price: totalPrice,
+        payment_method: paymentMethod,
+        status: 'completed',
+      });
 
-      if (existingCustomer) {
-        updateCustomerCredit(existingCustomer.id, totalPrice);
-      } else {
-        const newCustomer = {
-          id: generateId(),
-          name,
-          type: 'credit' as const,
-          creditBalance: totalPrice,
-          createdAt: new Date(),
-        };
-        saveCustomer(newCustomer);
+      // If credit payment, create/update customer
+      if (paymentMethod === 'credit') {
+        try {
+          const customers = await customerApi.getAll(name);
+          const existingCustomer = customers.find(
+            c => c.name.toLowerCase() === name.toLowerCase()
+          );
+
+          if (existingCustomer) {
+            await customerApi.updateCredit(existingCustomer.id, totalPrice);
+          } else {
+            await customerApi.create({
+              name,
+              type: 'credit',
+            });
+            // After creating, update their credit
+            const newCustomers = await customerApi.getAll(name);
+            const newCustomer = newCustomers.find(
+              c => c.name.toLowerCase() === name.toLowerCase()
+            );
+            if (newCustomer) {
+              await customerApi.updateCredit(newCustomer.id, totalPrice);
+            }
+          }
+        } catch (customerError) {
+          console.error('Failed to update customer credit:', customerError);
+          // Don't fail the transaction if customer update fails
+        }
       }
+
+      toast.success(`Transaction Saved! ${kilos}kg ${grainType} - KSh ${totalPrice}`);
+
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to create transaction:', error);
+      uiToast({ 
+        title: 'Failed to save transaction', 
+        description: 'Please try again or check your connection',
+        variant: 'destructive' 
+      });
+    } finally {
+      setSubmitting(false);
     }
-
-    const transaction: Transaction = {
-      id: generateId(),
-      customerName: name,
-      grainType,
-      kilos,
-      millingCount,
-      pricePerKilo,
-      totalPrice,
-      paymentMethod,
-      status: 'completed',
-      createdAt: new Date(),
-    };
-
-    saveTransaction(transaction);
-
-    toast({
-      title: 'Transaction Saved!',
-      description: `${kilos}kg ${grainType} - KSh ${totalPrice}`,
-    });
-
-    navigate('/');
   };
 
   return (
@@ -234,11 +246,11 @@ export default function NewTransaction() {
         <Button
           size="xl"
           onClick={handleSubmit}
-          disabled={!grainType || kilos <= 0}
+          disabled={!grainType || kilos <= 0 || submitting}
           className="w-full gap-2"
         >
           <Check className="w-5 h-5" />
-          Complete Transaction
+          {submitting ? 'Saving...' : 'Complete Transaction'}
         </Button>
       </div>
 
@@ -246,3 +258,4 @@ export default function NewTransaction() {
     </div>
   );
 }
+

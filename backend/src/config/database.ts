@@ -1,0 +1,60 @@
+import { Pool, PoolConfig } from 'pg';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Database configuration
+const dbConfig: PoolConfig = {
+  host: process.env['DB_HOST'] || 'localhost',
+  port: parseInt(process.env['DB_PORT'] || '5432'),
+  database: process.env['DB_NAME'] || 'poshomill',
+  user: process.env['DB_USER'] || 'mwei',
+  password: process.env['DB_PASSWORD'] || '',
+  ssl: process.env['DB_SSL'] === 'true' ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+};
+
+// Create connection pool
+export const pool = new Pool(dbConfig);
+
+// Test database connection
+export const testConnection = async (): Promise<boolean> => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW()');
+    client.release();
+    console.log('✅ Database connected successfully:', result.rows[0].now);
+    return true;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+    return false;
+  }
+};
+
+// Graceful shutdown
+export const closeDatabase = async (): Promise<void> => {
+  try {
+    await pool.end();
+    console.log('🔌 Database connection closed');
+  } catch (error) {
+    console.error('❌ Error closing database connection:', error);
+  }
+};
+
+// Health check query
+export const healthCheck = async (): Promise<{ status: string; timestamp: string }> => {
+  try {
+    const result = await pool.query('SELECT NOW() as timestamp');
+    return {
+      status: 'healthy',
+      timestamp: result.rows[0].timestamp
+    };
+  } catch (error) {
+    return {
+      status: 'unhealthy',
+      timestamp: new Date().toISOString()
+    };
+  }
+};

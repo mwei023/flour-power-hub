@@ -8,57 +8,78 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Customer } from '@/types';
-import { getCustomers, saveCustomer, generateId, updateCustomerCredit } from '@/lib/storage';
+import { customerApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
+
 
 export default function Customers() {
   const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [paymentAmount, setPaymentAmount] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setCustomers(getCustomers());
+    fetchCustomers();
   }, []);
 
-  const handleAddCustomer = () => {
+  const fetchCustomers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await customerApi.getAll();
+      setCustomers(data);
+    } catch (error) {
+      console.error('Failed to fetch customers:', error);
+      toast({ title: 'Failed to load customers', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddCustomer = async () => {
     if (!newName.trim()) {
       toast({ title: 'Enter customer name', variant: 'destructive' });
       return;
     }
 
-    const customer: Customer = {
-      id: generateId(),
-      name: newName.trim(),
-      phone: newPhone.trim() || undefined,
-      type: 'credit',
-      creditBalance: 0,
-      createdAt: new Date(),
-    };
-
-    saveCustomer(customer);
-    setCustomers(getCustomers());
-    setNewName('');
-    setNewPhone('');
-    setIsAddOpen(false);
-    toast({ title: 'Customer added!' });
+    try {
+      await customerApi.create({
+        name: newName.trim(),
+        phone: newPhone.trim() || undefined,
+        type: 'credit',
+      });
+      await fetchCustomers();
+      setNewName('');
+      setNewPhone('');
+      setIsAddOpen(false);
+      toast({ title: 'Customer added!' });
+    } catch (error) {
+      console.error('Failed to add customer:', error);
+      toast({ title: 'Failed to add customer', variant: 'destructive' });
+    }
   };
 
-  const handlePayment = (customerId: string) => {
+  const handlePayment = async (customerId: string) => {
     const amount = Number(paymentAmount[customerId]);
     if (!amount || amount <= 0) {
       toast({ title: 'Enter valid amount', variant: 'destructive' });
       return;
     }
 
-    updateCustomerCredit(customerId, -amount);
-    setCustomers(getCustomers());
-    setPaymentAmount({ ...paymentAmount, [customerId]: '' });
-    toast({ title: `Payment of KSh ${amount} recorded!` });
+    try {
+      await customerApi.updateCredit(customerId, -amount);
+      await fetchCustomers();
+      setPaymentAmount({ ...paymentAmount, [customerId]: '' });
+      toast({ title: `Payment of KSh ${amount} recorded!` });
+    } catch (error) {
+      console.error('Failed to record payment:', error);
+      toast({ title: 'Failed to record payment', variant: 'destructive' });
+    }
   };
+
 
   const filteredCustomers = customers.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())

@@ -1,5 +1,5 @@
 # Logs
-logs
+
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,7 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+
 dist
 dist-ssr
 *.local
@@ -22,3 +22,68 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+bun.lockb
+
+# Environment files (NEVER commit these!)
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+
+# Build outputs
+/dist
+/dev-dist
+/backend/dist
+
+# Logs
+logs
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.dockerignore
+
+# Tests
+/backend/tests
+coverage/
+
+# Database data (schema is OK, data is NOT)
+/backend/database/*.db
+/backend/database/data/
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Backup files
+*~
+*.backup
+*.old
+
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+
+# Additional database formats
+*.sqlite
+*.sqlite3
+
+# IDE specific settings (keep extensions.json)
+.vscode/settings.json
+.vscode/launch.json
