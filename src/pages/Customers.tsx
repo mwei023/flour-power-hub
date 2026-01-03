@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Phone, CreditCard, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,9 +24,9 @@ export default function Customers() {
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [fetchCustomers]);
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await customerApi.getAll();
@@ -37,7 +37,7 @@ export default function Customers() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   const handleAddCustomer = async () => {
     if (!newName.trim()) {

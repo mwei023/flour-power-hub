@@ -153,8 +153,17 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction): 
       duration: `${duration}ms`,
       ip: req.ip || req.connection.remoteAddress,
       userAgent: req.get('User-Agent'),
-      userId: (req as any).user?.id || 'anonymous',
+      userId: (req as AuthenticatedRequest).user?.id || 'anonymous',
     };
+
+// Extended Request type with user property for authenticated requests
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email?: string;
+    role?: string;
+  };
+}
     
     console.log('📊 Request:', JSON.stringify(logData));
   });
