@@ -3,6 +3,15 @@ import { pool } from '../config/database';
 import { asyncHandler, successResponse, errorResponse, createPaginationResponse } from '../middleware/validation';
 import type { CreateCustomerRequest, UpdateCustomerRequest } from '../types';
 
+// Extended Request type with validated data from validation middleware
+interface ValidatedRequest<T = unknown> extends Request {
+  validatedData?: {
+    body?: T;
+    query?: T;
+    params?: T;
+  };
+}
+
 export const getAllCustomers = asyncHandler(async (req: Request, res: Response) => {
   const page = parseInt(req.query['page'] as string) || 1;
   const limit = parseInt(req.query['limit'] as string) || 20;
@@ -67,7 +76,7 @@ export const getCustomerById = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const createCustomer = asyncHandler(async (req: Request, res: Response) => {
-  const validatedData = (req as any).validatedData?.body as CreateCustomerRequest;
+  const validatedData = (req as ValidatedRequest<CreateCustomerRequest>).validatedData?.body;
   
   if (!validatedData) {
     return errorResponse(res, 'Invalid request data', 400);
@@ -85,7 +94,7 @@ export const createCustomer = asyncHandler(async (req: Request, res: Response) =
 
 export const updateCustomer = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const validatedData = (req as any).validatedData?.body as UpdateCustomerRequest;
+  const validatedData = (req as ValidatedRequest<UpdateCustomerRequest>).validatedData?.body;
   
   if (!validatedData) {
     return errorResponse(res, 'Invalid request data', 400);

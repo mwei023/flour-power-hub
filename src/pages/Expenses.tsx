@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, ShoppingBag, Wrench, Zap, Package, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,9 +34,9 @@ export default function Expenses() {
 
   useEffect(() => {
     fetchExpenses();
-  }, []);
+  }, [fetchExpenses]);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await expenseApi.getAll();
@@ -47,7 +47,7 @@ export default function Expenses() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   const handleAddExpense = async () => {
     const numAmount = Number(amount);
