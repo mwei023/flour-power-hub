@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Filter, Download, Eye, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -130,7 +130,7 @@ useEffect(() => {
 
 
   // Polling function to fetch new paid transactions
-  const fetchNewPaidTransactions = async () => {
+  const fetchNewPaidTransactions = useCallback(async () => {
     try {
       // Get user role from token
       const token = localStorage.getItem('auth_token');
@@ -188,6 +188,7 @@ useEffect(() => {
       }
       setIsPolling(false);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array means this runs once on mount
 
   // Reset new transaction count when viewing transactions
