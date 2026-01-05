@@ -32,10 +32,6 @@ export default function Expenses() {
   const [reason, setReason] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('other');
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
-
   const fetchExpenses = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -48,6 +44,10 @@ export default function Expenses() {
       setIsLoading(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
 
   const handleAddExpense = async () => {
     const numAmount = Number(amount);
