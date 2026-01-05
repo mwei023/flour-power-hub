@@ -22,10 +22,6 @@ export default function Customers() {
   const [newPhone, setNewPhone] = useState('');
   const [paymentAmount, setPaymentAmount] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
-
   const fetchCustomers = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -38,6 +34,10 @@ export default function Customers() {
       setIsLoading(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   const handleAddCustomer = async () => {
     if (!newName.trim()) {

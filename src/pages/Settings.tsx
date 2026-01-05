@@ -15,10 +15,10 @@ export default function Settings() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch all transactions and expenses from API
+        // Fetch today's transactions and expenses from API
         const [transactions, expenses] = await Promise.all([
-          transactionApi.getAll(),
-          expenseApi.getAll(),
+          transactionApi.getToday(),
+          expenseApi.getToday(),
         ]);
 
         const now = new Date();
