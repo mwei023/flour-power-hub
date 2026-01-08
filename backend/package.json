@@ -14,7 +14,8 @@
     "db:setup": "psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f database/init.sql",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts"
   },
   "keywords": [
     "poshomill",
@@ -53,6 +54,7 @@
     "@types/pg": "^8.10.9",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^9.0.7",
+    "eslint": "^9.39.2",
     "jest": "^30.2.0",
     "nodemon": "^3.0.2",
     "supertest": "^7.1.4",

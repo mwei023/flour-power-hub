@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Building, Calendar, Search, Package, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,11 +40,7 @@ export default function Tenders() {
   const [newDueDate, setNewDueDate] = useState('');
   const [newNotes, setNewNotes] = useState('');
 
-  useEffect(() => {
-    fetchTenders();
-  }, []);
-
-  const fetchTenders = async () => {
+  const fetchTenders = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await tenderApi.getAll();
@@ -55,7 +51,11 @@ export default function Tenders() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchTenders();
+  }, [fetchTenders]);
 
   const filteredTenders = tenders.filter(tender => {
     const matchesSearch = searchQuery === '' || 
@@ -89,15 +89,15 @@ export default function Tenders() {
 
     try {
       await tenderApi.create({
-        customerName: newCustomerName.trim(),
+        customer_name: newCustomerName.trim(),
         organization: newOrganization.trim(),
-        grainType: newGrainType,
+        grain_type: newGrainType,
         quantity: newQuantity,
         unit: newUnit,
-        agreedPrice: newAgreedPrice,
+        agreed_price: newAgreedPrice,
         status: 'pending',
         notes: newNotes.trim() || undefined,
-        dueDate: newDueDate || undefined,
+        due_date: newDueDate || undefined,
       });
       
       await fetchTenders();

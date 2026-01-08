@@ -45,13 +45,13 @@ export interface Expense {
 
 export interface Tender {
   id: string;
-  customer_id: string;
+  customer_id?: string;
   customer_name: string;
   organization: string;
   grain_type: GrainType;
   quantity: number;
   unit: 'kg' | 'bags';
-  agreed_price: number;
+  agreed_price?: number;
   status: TenderStatus;
   notes?: string;
   due_date?: string;
@@ -124,13 +124,13 @@ export interface UpdateExpenseRequest {
 }
 
 export interface CreateTenderRequest {
-  customer_id: string;
+  customer_id?: string;
   customer_name: string;
   organization: string;
   grain_type: GrainType;
   quantity: number;
   unit: 'kg' | 'bags';
-  agreed_price: number;
+  agreed_price?: number;
   status?: TenderStatus;
   notes?: string;
   due_date?: string;
@@ -157,7 +157,7 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-export interface PaginatedResponse<T> extends ApiResponse<{
+export type PaginatedResponse<T> = ApiResponse<{
   data: T[];
   pagination: {
     page: number;
@@ -167,7 +167,7 @@ export interface PaginatedResponse<T> extends ApiResponse<{
     hasNext: boolean;
     hasPrev: boolean;
   };
-}> {}
+}>;
 
 // Query parameters
 export interface PaginationQuery {
