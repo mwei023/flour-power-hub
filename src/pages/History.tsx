@@ -168,7 +168,8 @@ useEffect(() => {
       console.error('Error fetching new transactions:', error);
       // Don't show error toast for polling failures to avoid spam
     }
-  };
+  }, [transactions, lastCheckedTime]);
+  // End of useCallback
 
   // Start polling for new transactions
   useEffect(() => {
