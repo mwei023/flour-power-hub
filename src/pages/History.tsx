@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { Transaction, GrainType, PaymentMethod, GRAIN_LABELS } from '@/types';
 import { toast } from 'sonner';
 import { transactionApi } from '@/lib/api';
-
 // Backend transaction interface
 interface BackendTransaction {
   id: string;
@@ -23,7 +22,6 @@ interface BackendTransaction {
   status: string;
   created_at: string;
 }
-
 export default function History() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
