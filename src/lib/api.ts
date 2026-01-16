@@ -17,8 +17,10 @@ import type {
 } from '@/types/api';
 import { Customer, Transaction, Expense, Tender, DailySummary as FrontendDailySummary } from '@/types';
 
-// API Configuration - Use relative path for proxy, fallback to localhost for direct access
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// API Configuration - Use path-based routing on main domain in production
+const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (isProduction ? 'https://amani.mwei.co.ke/api/v1' : '/api/v1');
+
 
 // Create axios instance
 const apiClient = axios.create({

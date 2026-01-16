@@ -1,0 +1,58 @@
+# Cloudflare Tunnel Configuration for Flour Power Hub
+# Domain: amani.mwei.co.ke -> localhost:8081 (frontend), localhost:3001 (API)
+
+# Tunnel Configuration
+tunnel: 00b60aa3-57d2-4fd9-9f3f-33192b4cad48
+credentials-file: /home/mwei/.cloudflared/00b60aa3-57d2-4fd9-9f3f-33192b4cad48.json
+
+# Ingress Rules - Define how traffic should be routed
+ingress:
+  # API routing via path prefix on main domain
+  - hostname: amani.mwei.co.ke
+    service: http://localhost:3001
+    path: /api/*
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 10s
+      tlsTimeout: 10s
+      tcpKeepAlive: 30s
+
+  # Main application routing (frontend)
+  - hostname: amani.mwei.co.ke
+    service: http://localhost:8081
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 10s
+      tlsTimeout: 10s
+      tcpKeepAlive: 30s
+
+  # Catch-all rule (required - returns 404 for unmatched requests)
+  - service: http_status:404
+
+# Optional: Transport configuration
+transport:
+  # QUIC protocol for better performance
+  # quic: true
+  
+  # Keep connections alive
+  # keepAlive: true
+  # keepAliveInterval: 30s
+
+# Optional: HTTP settings
+httpSettings:
+  # Enable HTTP/3 for faster connections
+  # enableHTTP3: true
+  
+  # Trust proxy headers from Cloudflare
+  # trustProxy: true
+
+# Optional: Metrics and logging
+metrics:
+  # Enable prometheus metrics
+  # enabled: true
+  # prometheusEndpoint: /metrics
+
+# Optional: Autoupdate
+# autoupdate: true
+# autoupdateFreq: 24h
+
