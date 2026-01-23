@@ -19,13 +19,22 @@ const dbConfig: PoolConfig = {
 // Create connection pool
 export const pool = new Pool(dbConfig);
 
+// Set timezone on each connection
+pool.on('connect', async (client) => {
+  try {
+    await client.query("SET timezone = 'Africa/Nairobi'");
+  } catch (error) {
+    console.error('Failed to set timezone:', error);
+  }
+});
+
 // Test database connection
 export const testConnection = async (): Promise<boolean> => {
   try {
     const client = await pool.connect();
-    const result = await client.query('SELECT NOW()');
+    const result = await client.query("SELECT NOW() as timestamp, current_setting('timezone') as timezone");
     client.release();
-    console.log('✅ Database connected successfully:', result.rows[0].now);
+    console.log('✅ Database connected successfully:', result.rows[0].timestamp, 'Timezone:', result.rows[0].timezone);
     return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error);
@@ -46,7 +55,7 @@ export const closeDatabase = async (): Promise<void> => {
 // Health check query
 export const healthCheck = async (): Promise<{ status: string; timestamp: string }> => {
   try {
-    const result = await pool.query('SELECT NOW() as timestamp');
+    const result = await pool.query("SELECT NOW() as timestamp");
     return {
       status: 'healthy',
       timestamp: result.rows[0].timestamp

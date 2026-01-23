@@ -1,0 +1,21 @@
+[Unit]
+Description=Posho Mill Tracker Backend API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=mwei
+WorkingDirectory=/home/mwei/flour-power-hub/backend
+ExecStart=/usr/bin/npx tsx src/app.ts
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=development
+EnvironmentFile=/home/mwei/flour-power-hub/.env
+
+# Logging
+StandardOutput=append:/tmp/backend.log
+StandardError=append:/tmp/backend.log
+
+[Install]
+WantedBy=multi-user.target
+

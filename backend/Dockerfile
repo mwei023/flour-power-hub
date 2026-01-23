@@ -4,7 +4,7 @@ FROM postgres:15
 # Set environment variables
 ENV POSTGRES_DB=poshomill
 ENV POSTGRES_USER=mwei
-ENV POSTGRES_PASSWORD=poshomill123
+ENV POSTGRES_PASSWORD=23042003mwei
 
 # Create database and run initialization
 COPY database/init.sql /docker-entrypoint-initdb.d/01-init.sql

@@ -17,8 +17,10 @@ import type {
 } from '@/types/api';
 import { Customer, Transaction, Expense, Tender, DailySummary as FrontendDailySummary } from '@/types';
 
-// API Configuration - Use relative path for proxy, fallback to localhost for direct access
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// API Configuration - Use path-based routing on main domain in production
+const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (isProduction ? 'https://amani.mwei.co.ke/api/v1' : '/api/v1');
+
 
 // Create axios instance
 const apiClient = axios.create({
@@ -421,6 +423,60 @@ export const authApi = {
   
   refreshToken: async (): Promise<{ token: string }> => {
     const response = await apiClient.post<ApiResponse<{ token: string }>>('/auth/refresh');
+    return handleApiResponse(response);
+  },
+};
+
+// ==================== M-PESA API ====================
+
+export interface MpesaPayment {
+  id: string;
+  transaction_id: string;
+  phone: string;
+  amount: number;
+  bill_ref?: string;
+  status: 'pending' | 'matched' | 'failed';
+  raw_data?: Record<string, unknown>;
+  matched_transaction_id?: string;
+  matched_at?: string;
+  received_at: string;
+  created_at: string;
+  updated_at: string;
+  receipt_number?: string;
+  matched_customer?: string;
+}
+
+export interface MpesaSummary {
+  date: string;
+  totalCount: number;
+  totalAmount: number;
+  matchedCount: number;
+  pendingCount: number;
+  matchedAmount: number;
+  pendingAmount: number;
+}
+
+export const mpesaApi = {
+  getAll: async (filters?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    search?: string;
+  }): Promise<MpesaPayment[]> => {
+    const response = await apiClient.get<PaginatedResponse<MpesaPayment>>('/mpesa-payments', { params: filters });
+    return handlePaginatedResponse(response);
+  },
+  
+  getById: async (id: string): Promise<MpesaPayment> => {
+    const response = await apiClient.get<ApiResponse<MpesaPayment>>(`/mpesa-payments/${id}`);
+    return handleApiResponse(response);
+  },
+  
+  getSummary: async (date?: string): Promise<MpesaSummary> => {
+    const params = date ? { date } : {};
+    const response = await apiClient.get<ApiResponse<MpesaSummary>>('/mpesa-payments/summary', { params });
     return handleApiResponse(response);
   },
 };

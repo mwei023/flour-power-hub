@@ -32,11 +32,26 @@ export default function Index() {
 
       // Handle transaction results
       if (todayTransactions.status === 'fulfilled') {
-        setTransactions(todayTransactions.value);
+        // Filter out any null transactions and ensure we have valid data
+        const validTransactions = (todayTransactions.value || []).filter(t => t !== null);
+        setTransactions(validTransactions);
       } else {
         console.error('Failed to fetch transactions:', todayTransactions.reason);
-        toast.error('Failed to load transactions');
-        setTransactions([]);
+        // Try fallback - fetch all transactions and filter client-side
+        try {
+          const allTx = await transactionApi.getAll({ limit: 20 });
+          const today = new Date().toISOString().split('T')[0];
+          const todayTx = allTx.filter(t => {
+            const txDate = new Date(t.createdAt).toISOString().split('T')[0];
+            return txDate === today;
+          });
+          setTransactions(todayTx);
+          console.log('Fallback: Successfully fetched today transactions from all endpoint');
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+          toast.error('Failed to load transactions');
+          setTransactions([]);
+        }
       }
 
       // Handle summary results
@@ -51,7 +66,7 @@ export default function Index() {
       // Handle customer results
       let creditCusts: Customer[] = [];
       if (allCustomers.status === 'fulfilled') {
-        creditCusts = allCustomers.value.filter(c => c.credit_balance > 0);
+        creditCusts = allCustomers.value.filter(c => c.creditBalance > 0);
       } else {
         console.error('Failed to fetch customers:', allCustomers.reason);
         toast.error('Failed to load customers');
@@ -65,7 +80,7 @@ export default function Index() {
     }
   };
 
-  const totalCredit = creditCustomers.reduce((sum, c) => sum + c.credit_balance, 0);
+  const totalCredit = creditCustomers.reduce((sum, c) => sum + c.creditBalance, 0);
 
   const formatCurrency = (amount: number) => `KSh ${amount.toLocaleString()}`;
 
