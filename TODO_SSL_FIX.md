@@ -1,69 +1,103 @@
-# SSL/TLS Handshake Fix - COMPLETED ✅
+# SSL/TLS Fix - COMPLETED ✅
 
 ## Original Issue
-- DNS resolved for `api.amani.mwei.co.ke` but TLS handshake failed with `error:0A000410:SSL routines::ssl/tls alert handshake failure`
+```bash
+curl -v https://api.amani.mwei.co.ke/api/v1/auth/login
+# TLS handshake failure: error:0A000410:SSL routines::ssl/tls alert handshake failure
+```
 
 ## Root Cause
-1. The `api.amani.mwei.co.ke` subdomain DNS was routed to `mwei-tunnel`
-2. The config in `/home/mwei/flour-power-hub/config.yml` used a different tunnel (`flour-power-hub-tunnel`)
-3. SSL certificate was not properly configured for the subdomain
+1. **SSL Certificate**: Wildcard certificate `*.mwei.co.ke` only covers `amani.mwei.co.ke`, NOT `api.amani.mwei.co.ke` (2nd-level subdomain)
+2. **Backend route missing**: The `/api/v1/*` endpoints weren't properly defined
 
 ## Solution Implemented
+Use path-based routing on the main domain (`amani.mwei.co.ke/api/v1/*`)
 
-### 1. Updated Cloudflare Tunnel Config (`~/.cloudflared/config.yml`)
-- Changed to use the working `mwei-tunnel` (UUID: `00b60aa3-57d2-4fd9-9f3f-33192b4cad48`)
-- Added path-based routing for API: `/api/*` → `localhost:3001`
-- Kept main domain routing: `amani.mwei.co.ke` → `localhost:8081`
+---
 
-### 2. Updated Frontend API Config (`src/lib/api.ts`)
-- Changed from `https://api.amani.mwei.co.ke/api/v1` to `https://amani.mwei.co.ke/api/v1`
-- Uses path-based routing on main domain
+## 🚀 Starting Services After Restart
 
-### 3. Restarted Cloudflare Tunnel
-- Tunnel now connected with 4 connections (jnb01, jnb04, cpt01)
-
-## Verification
+### Option 1: Quick Start Script (Recommended)
 ```bash
-# TLS handshake now works
-curl -s -X POST https://amani.mwei.co.ke/api/v1/auth/login \
+cd /home/mwei/flour-power-hub
+./start-services.sh
+```
+
+This script will:
+1. Check PostgreSQL
+2. Start the Backend API on port 3001
+3. Start the Cloudflare Tunnel
+4. Verify everything is working
+
+### Option 2: Manual Startup
+```bash
+# Terminal 1: Start Backend
+cd /home/mwei/flour-power-hub/backend
+nohup npx tsx src/app.ts > /tmp/backend.log 2>&1 &
+
+# Terminal 2: Start Cloudflare Tunnel
+sudo cloudflared --config /etc/cloudflared/config.yml tunnel run &
+```
+
+### Option 3: Systemd Service (Advanced)
+```bash
+# Install the service
+sudo cp /home/mwei/flour-power-hub/backend.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable backend
+sudo systemctl start backend
+
+# Check status
+sudo systemctl status backend
+```
+
+---
+
+## 📝 Useful Commands
+
+| Action | Command |
+|--------|---------|
+| Start all services | `./start-services.sh` |
+| View backend logs | `tail -f /tmp/backend.log` |
+| Check tunnel status | `cloudflared tunnel list` |
+| Stop all services | `pkill -f 'tsx' && sudo pkill cloudflared` |
+| Test API | `curl https://amani.mwei.co.ke/api/v1/health` |
+| Test login | `curl -X POST https://amani.mwei.co.ke/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"test@test.com","password":"test"}'` |
+
+---
+
+## 🔗 API Endpoints
+
+| Endpoint | Local | Production |
+|----------|-------|------------|
+| Health | http://localhost:3001/health | https://amani.mwei.co.ke/api/v1/health |
+| Login | http://localhost:3001/api/v1/auth/login | https://amani.mwei.co.ke/api/v1/auth/login |
+| Customers | http://localhost:3001/api/v1/customers | https://amani.mwei.co.ke/api/v1/customers |
+| Transactions | http://localhost:3001/api/v1/transactions | https://amani.mwei.co.ke/api/v1/transactions |
+
+---
+
+## ✅ Verification
+```bash
+# Health check
+$ curl -s https://amani.mwei.co.ke/api/v1/health
+{"status":"ok","timestamp":"...","version":"v1","database":{"status":"healthy"}}
+
+# Login (should return "Invalid credentials" for test user)
+$ curl -X POST https://amani.mwei.co.ke/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.com","password":"test"}'
-# Returns: {"success":false,"error":"Invalid credentials"} ✅
-
-# Health check works
-curl -I https://amani.mwei.co.ke/api/v1/health
-# Returns: HTTP/2 200 ✅
+{"success":false,"error":"Invalid credentials"}
 ```
 
-## Files Modified
-1. `/home/mwei/flour-power-hub/config.yml` - Updated tunnel config
-2. `/home/mwei/.cloudflared/config.yml` - Added path-based API routing
-3. `/home/mwei/flour-power-hub/src/lib/api.ts` - Updated API URL
+---
 
-## To Keep the Tunnel Running
-```bash
-# Start tunnel
-cloudflared tunnel --config /home/mwei/.cloudflared/config.yml run &
+## 📂 Files Created/Modified
 
-# Or create systemd service (optional)
-sudo tee /etc/systemd/system/cloudflared-tunnel.service > /dev/null << 'EOF'
-[Unit]
-Description=Cloudflare Tunnel for Flour Power Hub
-After=network.target
-
-[Service]
-Type=simple
-User=mwei
-ExecStart=/usr/local/bin/cloudflared tunnel --config /home/mwei/.cloudflared/config.yml run
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable cloudflared-tunnel
-sudo systemctl start cloudflared-tunnel
-```
+| File | Purpose |
+|------|---------|
+| `/home/mwei/flour-power-hub/start-services.sh` | Quick start script |
+| `/home/mwei/flour-power-hub/backend.service` | Systemd service file |
+| `/etc/cloudflared/config.yml` | Cloudflare Tunnel config |
+| `/home/mwei/flour-power-hub/backend/src/app.ts` | Backend with `/api/v1/*` routes |
 

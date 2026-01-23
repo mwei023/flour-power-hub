@@ -7,6 +7,7 @@ import {
   updateCustomer,
   deleteCustomer,
   getCreditCustomers,
+  updateCustomerCredit,
 } from '../controllers/customerController';
 import { validateRequest } from '../middleware/validation';
 import { authenticateJWT, auditLog } from '../middleware/auth';
@@ -46,6 +47,7 @@ router.get('/', authenticateJWT, auditLog('get_customers', 'customer'), getAllCu
 router.get('/credit', authenticateJWT, auditLog('get_credit_customers', 'customer'), getCreditCustomers);
 router.get('/:id', authenticateJWT, validateRequest(customerIdSchema), auditLog('get_customer', 'customer'), getCustomerById);
 router.post('/', authenticateJWT, validateRequest(createCustomerSchema), auditLog('create_customer', 'customer'), createCustomer);
+router.post('/:id/credit', authenticateJWT, auditLog('update_customer_credit', 'customer'), updateCustomerCredit);
 router.put('/:id', authenticateJWT, validateRequest(updateCustomerSchema), auditLog('update_customer', 'customer'), updateCustomer);
 router.delete('/:id', authenticateJWT, validateRequest(customerIdSchema), auditLog('delete_customer', 'customer'), deleteCustomer);
 

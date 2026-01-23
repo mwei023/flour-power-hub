@@ -12,6 +12,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import History from "./pages/History";
 import Tenders from "./pages/Tenders";
+import MpesaPayments from "./pages/MpesaPayments";
 import Login from "./pages/Login";
 import { PWAInstallPrompt, PWAUpdateNotification, OnboardingGuide } from "./components/pwa";
 import { usePWAInstall } from "./hooks/usePWAInstall";
@@ -157,6 +158,11 @@ const App = () => {
             <Route path="/tenders" element={
               <ProtectedRoute>
                 <Tenders />
+              </ProtectedRoute>
+            } />
+            <Route path="/mpesa" element={
+              <ProtectedRoute>
+                <MpesaPayments />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

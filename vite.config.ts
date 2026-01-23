@@ -143,6 +143,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0',
+    allowedHosts: [
+      'localhost',
+      'amani.mwei.co.ke',
+      '.mwei.co.ke'
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

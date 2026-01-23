@@ -1,16 +1,33 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Smartphone, DollarSign, History, AlertTriangle, Building, Receipt } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Smartphone, DollarSign, History, AlertTriangle, Building, Receipt, CreditCard, LogOut } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { transactionApi, expenseApi } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { transactionApi, expenseApi, authApi } from '@/lib/api';
 import { Transaction, Expense } from '@/types';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function Settings() {
   const [weeklyStats, setWeeklyStats] = useState({ income: 0, expenses: 0, profit: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ income: 0, expenses: 0, profit: 0 });
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+      toast.success('Logged out successfully');
+      navigate('/login');
+    } catch (error) {
+      // Even if API call fails, clear local storage and redirect
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      toast.success('Logged out successfully');
+      navigate('/login');
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -115,6 +132,15 @@ export default function Settings() {
                 </div>
               </div>
             </Link>
+            <Link to="/mpesa">
+              <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/5 transition-colors cursor-pointer">
+                <CreditCard className="w-5 h-5 text-info" />
+                <div className="flex-1">
+                  <p className="font-medium">M-Pesa Payments</p>
+                  <p className="text-sm text-muted-foreground">View all M-Pesa transactions</p>
+                </div>
+              </div>
+            </Link>
           </CardContent>
         </Card>
 
@@ -205,6 +231,16 @@ export default function Settings() {
             </p>
           </div>
         </div>
+
+        {/* Logout Button */}
+        <Button 
+          variant="outline" 
+          className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4" />
+          Log Out
+        </Button>
       </div>
 
       <BottomNav />

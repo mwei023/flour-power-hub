@@ -3,12 +3,20 @@ import { pool } from '../config/database';
 import { asyncHandler, successResponse, errorResponse } from '../middleware/validation';
 
 export const getDailySummary = asyncHandler(async (req: Request, res: Response) => {
-  const date = req.query['date'] as string || new Date().toISOString().split('T')[0];
+  const dateParam = req.query['date'] as string;
   
   try {
-    // Get today's date range
-    const startOfDay = `${date}T00:00:00`;
-    const endOfDay = `${date}T23:59:59`;
+    // Use timezone-aware date range
+    let dateFilter = '';
+    const dateParams: string[] = [];
+    
+    if (dateParam) {
+      dateFilter = `AND created_at >= '${dateParam}' AT TIME ZONE 'Africa/Nairobi' 
+                    AND created_at < '${dateParam}' AT TIME ZONE 'Africa/Nairobi' + INTERVAL '1 day'`;
+    } else {
+      dateFilter = `AND created_at >= CURRENT_DATE AT TIME ZONE 'Africa/Nairobi'
+                    AND created_at < (CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE 'Africa/Nairobi'`;
+    }
     
     // Get transaction summary for the day
     const transactionQuery = `
@@ -20,21 +28,22 @@ export const getDailySummary = asyncHandler(async (req: Request, res: Response) 
         COALESCE(SUM(CASE WHEN payment_method = 'mpesa' THEN total_price ELSE 0 END), 0) as mpesa_income,
         COALESCE(SUM(CASE WHEN payment_method = 'credit' THEN total_price ELSE 0 END), 0) as credit_given
       FROM transactions 
-      WHERE created_at >= $1 AND created_at <= $2
-        AND status != 'cancelled'
+      WHERE status != 'cancelled'
+      ${dateFilter}
     `;
     
-    const transactionResult = await pool.query(transactionQuery, [startOfDay, endOfDay]);
+    const transactionResult = await pool.query(transactionQuery, dateParams);
     const txData = transactionResult.rows[0];
     
     // Get expenses for the day
     const expenseQuery = `
       SELECT COALESCE(SUM(amount), 0) as total_expenses
       FROM expenses 
-      WHERE created_at >= $1 AND created_at <= $2
+      WHERE 1=1
+      ${dateFilter}
     `;
     
-    const expenseResult = await pool.query(expenseQuery, [startOfDay, endOfDay]);
+    const expenseResult = await pool.query(expenseQuery, dateParams);
     const totalExpenses = parseFloat(expenseResult.rows[0].total_expenses) || 0;
     
     // Calculate net profit
@@ -42,7 +51,7 @@ export const getDailySummary = asyncHandler(async (req: Request, res: Response) 
     const netProfit = totalIncome - totalExpenses;
     
     successResponse(res, {
-      date: date,
+      date: dateParam || new Date().toISOString().split('T')[0],
       total_transactions: parseInt(txData.total_transactions) || 0,
       total_kilos: parseFloat(txData.total_kilos) || 0,
       total_income: totalIncome,

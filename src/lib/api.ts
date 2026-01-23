@@ -427,6 +427,60 @@ export const authApi = {
   },
 };
 
+// ==================== M-PESA API ====================
+
+export interface MpesaPayment {
+  id: string;
+  transaction_id: string;
+  phone: string;
+  amount: number;
+  bill_ref?: string;
+  status: 'pending' | 'matched' | 'failed';
+  raw_data?: Record<string, unknown>;
+  matched_transaction_id?: string;
+  matched_at?: string;
+  received_at: string;
+  created_at: string;
+  updated_at: string;
+  receipt_number?: string;
+  matched_customer?: string;
+}
+
+export interface MpesaSummary {
+  date: string;
+  totalCount: number;
+  totalAmount: number;
+  matchedCount: number;
+  pendingCount: number;
+  matchedAmount: number;
+  pendingAmount: number;
+}
+
+export const mpesaApi = {
+  getAll: async (filters?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    search?: string;
+  }): Promise<MpesaPayment[]> => {
+    const response = await apiClient.get<PaginatedResponse<MpesaPayment>>('/mpesa-payments', { params: filters });
+    return handlePaginatedResponse(response);
+  },
+  
+  getById: async (id: string): Promise<MpesaPayment> => {
+    const response = await apiClient.get<ApiResponse<MpesaPayment>>(`/mpesa-payments/${id}`);
+    return handleApiResponse(response);
+  },
+  
+  getSummary: async (date?: string): Promise<MpesaSummary> => {
+    const params = date ? { date } : {};
+    const response = await apiClient.get<ApiResponse<MpesaSummary>>('/mpesa-payments/summary', { params });
+    return handleApiResponse(response);
+  },
+};
+
 // Export utility functions for external use
 export { handleApiResponse, handlePaginatedResponse, handleApiError };
 

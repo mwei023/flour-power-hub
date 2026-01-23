@@ -36,7 +36,8 @@ app.use(helmet({
 const allowedOrigins = process.env['ALLOWED_ORIGINS']?.split(',') || [
   'http://localhost:5173',
   'http://localhost:3000',
-  'http://localhost:8080'
+  'http://localhost:8080',
+  'https://amani.mwei.co.ke'
 ];
 
 app.use(cors({
@@ -47,9 +48,7 @@ app.use(cors({
 }));
 
 // Trust proxy (only needed if behind reverse proxy)
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
+app.set('trust proxy', 1);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -74,8 +73,32 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // API prefix
 const API_PREFIX = process.env['API_PREFIX'] || '/api';
 const API_VERSION = process.env['API_VERSION'] || 'v1';
+const API_BASE_PATH = `${API_PREFIX}/${API_VERSION}`;
 
-// Health check endpoint
+// Health check endpoint (at /health for direct access, and /api/v1/health for cloudflare)
+app.get(`${API_BASE_PATH}/health`, async (_req, res) => {
+  try {
+    const dbHealth = await healthCheck();
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      version: API_VERSION,
+      environment: NODE_ENV,
+      database: dbHealth,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      version: API_VERSION,
+      environment: NODE_ENV,
+      database: { status: 'unhealthy' },
+      error: 'Database connection failed',
+    });
+  }
+});
+
+// Also keep the old health endpoint for local development
 app.get('/health', async (_req, res) => {
   try {
     const dbHealth = await healthCheck();
@@ -105,7 +128,7 @@ app.use(`${API_PREFIX}/${API_VERSION}/transactions`, transactionRoutes);
 app.use(`${API_PREFIX}/${API_VERSION}/expenses`, expenseRoutes);
 app.use(`${API_PREFIX}/${API_VERSION}/tenders`, tenderRoutes);
 app.use(`${API_PREFIX}/${API_VERSION}/reports`, reportRoutes);
-app.use('/api/payments', mpesaRoutes);
+app.use(`${API_PREFIX}/${API_VERSION}/mpesa-payments`, mpesaRoutes);
 
 // Root endpoint
 app.get('/', (_req, res) => {

@@ -175,6 +175,47 @@ jobs:
       working-directory: ./backend
       run: npm ci
 
+    - name: Verify database secrets
+      id: verify-secrets
+      run: |
+        echo "🔍 Checking required database secrets..."
+        
+        # Check if all required secrets are set
+        MISSING_SECRETS=""
+        
+        if [ -z "${{ secrets.DB_HOST }}" ]; then
+          MISSING_SECRETS="${MISSING_SECRETS} DB_HOST"
+        fi
+        if [ -z "${{ secrets.DB_PORT }}" ]; then
+          MISSING_SECRETS="${MISSING_SECRETS} DB_PORT"
+        fi
+        if [ -z "${{ secrets.DB_NAME }}" ]; then
+          MISSING_SECRETS="${MISSING_SECRETS} DB_NAME"
+        fi
+        if [ -z "${{ secrets.DB_USER }}" ]; then
+          MISSING_SECRETS="${MISSING_SECRETS} DB_USER"
+        fi
+        if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
+          MISSING_SECRETS="${MISSING_SECRETS} DB_PASSWORD"
+        fi
+        
+        if [ -n "${MISSING_SECRETS}" ]; then
+          echo "❌ Missing required secrets: ${MISSING_SECRETS}"
+          echo "Please set these secrets in GitHub repository settings:"
+          echo "  Repository Settings > Secrets and variables > Actions"
+          echo ""
+          echo "Required secrets:"
+          echo "  - DB_HOST: Database server hostname or IP"
+          echo "  - DB_PORT: Database port (default: 5432 for PostgreSQL)"
+          echo "  - DB_NAME: Database name"
+          echo "  - DB_USER: Database username"
+          echo "  - DB_PASSWORD: Database password"
+          echo "  - DB_SSL: Use SSL connection (true/false, optional)"
+          exit 1
+        fi
+        
+        echo "✅ All required database secrets are configured"
+
     - name: Run database migrations
       working-directory: ./backend
       run: npm run db:migrate

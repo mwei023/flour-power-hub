@@ -151,3 +151,59 @@ export const getCreditCustomers = asyncHandler(async (_req: Request, res: Respon
   
   successResponse(res, result.rows);
 });
+
+// Update customer credit balance
+export const updateCustomerCredit = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { amount, action } = req.body;
+
+  if (!id) {
+    return errorResponse(res, 'Customer ID is required', 400);
+  }
+
+  if (amount === undefined || typeof amount !== 'number' || amount < 0) {
+    return errorResponse(res, 'Valid amount is required', 400);
+  }
+
+  // Get current credit balance
+  const customerResult = await pool.query('SELECT credit_balance FROM customers WHERE id = $1', [id]);
+  
+  if (customerResult.rows.length === 0) {
+    return errorResponse(res, 'Customer not found', 404);
+  }
+
+  const currentBalance = parseFloat(customerResult.rows[0].credit_balance) || 0;
+  let newBalance = currentBalance;
+
+  // action can be 'add' (default) or 'set' or 'pay' (reduce)
+  switch (action) {
+    case 'set':
+      newBalance = amount;
+      break;
+    case 'pay':
+      newBalance = Math.max(0, currentBalance - amount);
+      break;
+    case 'add':
+    default:
+      newBalance = currentBalance + amount;
+      break;
+  }
+
+  const result = await pool.query(
+    `UPDATE customers 
+     SET credit_balance = $1, 
+         updated_at = CURRENT_TIMESTAMP,
+         last_transaction_at = CURRENT_TIMESTAMP,
+         total_transactions = total_transactions + 1,
+         total_revenue = total_revenue + $2
+     WHERE id = $3 
+     RETURNING *`,
+    [newBalance, action === 'pay' ? 0 : amount, id]
+  );
+
+  if (result.rows.length === 0) {
+    return errorResponse(res, 'Customer not found', 404);
+  }
+
+  successResponse(res, result.rows[0], `Credit ${action === 'pay' ? 'paid' : 'updated'} successfully`);
+});

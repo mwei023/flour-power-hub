@@ -141,13 +141,13 @@ export const getTransactionById = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getTodayTransactions = asyncHandler(async (_req: Request, res: Response) => {
-  const today = new Date().toISOString().split('T')[0];
-  
+  // Use a timezone-aware query to get today's transactions
+  // This handles the Africa/Nairobi timezone correctly
   const result = await pool.query(
     `SELECT * FROM transactions 
-     WHERE DATE(created_at) = $1 
-     ORDER BY created_at DESC`,
-    [today]
+     WHERE created_at >= CURRENT_DATE AT TIME ZONE 'Africa/Nairobi'
+       AND created_at < (CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE 'Africa/Nairobi'
+     ORDER BY created_at DESC`
   );
   
   successResponse(res, result.rows);

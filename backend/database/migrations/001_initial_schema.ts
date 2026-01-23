@@ -125,13 +125,15 @@ export async function up(knex: Knex): Promise<void> {
     table.string('bill_ref');
     table.enu('status', ['pending', 'matched', 'failed']).defaultTo('pending');
     table.json('raw_data');
-    table.timestamp('received_at').defaultTo(knex.fn.now());
+    table.uuid('matched_transaction_id').references('id').inTable('transactions').onDelete('SET NULL');
     table.timestamp('matched_at');
+    table.timestamp('received_at').defaultTo(knex.fn.now());
     table.timestamps(true, true);
     table.index(['transaction_id']);
     table.index(['phone']);
     table.index(['status']);
     table.index(['received_at']);
+    table.index(['matched_transaction_id']);
   });
 
   // Settings table for app configuration

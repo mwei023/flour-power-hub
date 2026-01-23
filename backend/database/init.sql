@@ -4,6 +4,9 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Set default timezone to Africa/Nairobi (Kenya)
+SET timezone = 'Africa/Nairobi';
+
 -- Users table (for authentication)
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -68,6 +71,12 @@ CREATE TABLE IF NOT EXISTS customers (
     phone VARCHAR(20),
     type VARCHAR(20) NOT NULL CHECK (type IN ('walk-in', 'credit', 'tender')),
     credit_balance DECIMAL(10,2) DEFAULT 0.00,
+    address VARCHAR(255),
+    email VARCHAR(255),
+    total_transactions DECIMAL(10,2) DEFAULT 0.00,
+    total_revenue DECIMAL(10,2) DEFAULT 0.00,
+    transaction_count INTEGER DEFAULT 0,
+    last_transaction_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -123,7 +132,13 @@ CREATE TABLE IF NOT EXISTS mpesa_payments (
   phone VARCHAR(15) NOT NULL,
   amount DECIMAL(10,2) NOT NULL,
   bill_ref VARCHAR(50),
-  received_at TIMESTAMP DEFAULT NOW()
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'matched', 'failed')),
+  raw_data JSONB,
+  matched_transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
+  matched_at TIMESTAMP DEFAULT NOW(),
+  received_at TIMESTAMP DEFAULT NOW(),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for better performance
