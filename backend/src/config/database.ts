@@ -60,7 +60,7 @@ export const healthCheck = async (): Promise<{ status: string; timestamp: string
       status: 'healthy',
       timestamp: result.rows[0].timestamp
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       status: 'unhealthy',
       timestamp: new Date().toISOString()

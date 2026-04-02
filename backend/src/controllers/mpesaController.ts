@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/database';
 import { asyncHandler, successResponse, errorResponse, createPaginationResponse } from '../middleware/validation';
-import crypto from 'crypto';
 import axios from 'axios';
 
 // M-Pesa Configuration from environment variables
@@ -74,7 +73,8 @@ export const handleC2BNotification = async (req: Request, res: Response) => {
   const client = await pool.connect();
   
   try {
-    const { TransAmount, MSISDN, TransID, BillRefNumber, TransTime } = req.body;
+    // TransTime is provided by Safaricom but not used in our logic — kept for logging/future use
+    const { TransAmount, MSISDN, TransID, BillRefNumber } = req.body;
 
     console.log('✅ M-Pesa payment received:', { TransID, MSISDN, TransAmount });
 
@@ -438,6 +438,7 @@ export const checkTransactionStatus = asyncHandler(async (req: Request, res: Res
 
   try {
     const accessToken = await getAccessToken();
+    // password and timestamp are used in the STK push request body below
     const { password, timestamp } = generatePassword();
 
     const requestBody = {
@@ -447,6 +448,8 @@ export const checkTransactionStatus = asyncHandler(async (req: Request, res: Res
       TransactionID: transactionId,
       PartyA: MPESA_CONFIG.shortcode,
       IdentifierType: '4',
+      Password: password,
+      Timestamp: timestamp,
       ResultURL: `${process.env['API_BASE_URL'] || 'https://api.mwei.co.ke'}/api/payments/status/result`,
       QueueTimeOutURL: `${process.env['API_BASE_URL'] || 'https://api.mwei.co.ke'}/api/payments/status/timeout`,
     };
@@ -482,6 +485,7 @@ export const checkTransactionStatus = asyncHandler(async (req: Request, res: Res
 export const checkAccountBalance = asyncHandler(async (_req: Request, res: Response) => {
   try {
     const accessToken = await getAccessToken();
+    // password and timestamp included in request body for M-Pesa auth
     const { password, timestamp } = generatePassword();
 
     const requestBody = {
@@ -490,6 +494,8 @@ export const checkAccountBalance = asyncHandler(async (_req: Request, res: Respo
       CommandID: 'AccountBalance',
       PartyA: MPESA_CONFIG.shortcode,
       IdentifierType: '4',
+      Password: password,
+      Timestamp: timestamp,
       ResultURL: `${process.env['API_BASE_URL'] || 'https://api.mwei.co.ke'}/api/payments/balance/result`,
       QueueTimeOutURL: `${process.env['API_BASE_URL'] || 'https://api.mwei.co.ke'}/api/payments/balance/timeout`,
     };
@@ -611,7 +617,7 @@ export const getAllMpesaPayments = asyncHandler(async (req: Request, res: Respon
     paramCount++;
   }
 
-  query += ` ORDER BY mp.received_at DESC LIMIT $${paramCount} OFFSET ${paramCount + 1}`;
+  query += ` ORDER BY mp.received_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
   params.push(limit, offset);
 
   const result = await pool.query(query, params);

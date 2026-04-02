@@ -86,7 +86,7 @@ app.get(`${API_BASE_PATH}/health`, async (_req, res) => {
       environment: NODE_ENV,
       database: dbHealth,
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({
       status: 'error',
       timestamp: new Date().toISOString(),
@@ -109,7 +109,7 @@ app.get('/health', async (_req, res) => {
       environment: NODE_ENV,
       database: dbHealth,
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({
       status: 'error',
       timestamp: new Date().toISOString(),
