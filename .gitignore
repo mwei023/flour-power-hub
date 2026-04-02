@@ -59,7 +59,6 @@ Thumbs.db
 .dockerignore
 
 # Tests
-/backend/tests
 coverage/
 
 # Database data (schema is OK, data is NOT)
