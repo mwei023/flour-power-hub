@@ -221,7 +221,7 @@ export const updateTransaction = asyncHandler(async (req: ValidatedRequest, res:
   let paramCount = 1;
   
   // Skip grain_type mapping for updates to avoid type issues
-  const { grain_type, ...otherFields } = validatedData;
+  const { someOtherVar } = req.body;
   
   Object.entries(otherFields).forEach(([key, value]) => {
     if (value !== undefined) {
