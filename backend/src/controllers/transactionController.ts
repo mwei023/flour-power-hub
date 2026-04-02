@@ -33,7 +33,6 @@ export const getAllTransactions = asyncHandler(async (req: Request, res: Respons
   }
   
   if (grainType) {
-    // Map frontend grain types to backend types
     const grainMap: Record<string, string> = {
       'maize-1': 'maize',
       'maize-2': 'maize',
@@ -76,17 +75,14 @@ export const getAllTransactions = asyncHandler(async (req: Request, res: Respons
     paramCount++;
   }
   
-  // Add pagination
   query += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
   params.push(limit, offset);
   
   const result = await pool.query(query, params);
   
-  // Get total count for pagination
   let countQuery = 'SELECT COUNT(*) FROM transactions WHERE 1=1';
   const countParams: (string | number)[] = [];
   
-  // Reuse the same filters for count query
   if (search) {
     countQuery += ` AND (customer_name ILIKE $${countParams.length + 1})`;
     countParams.push(`%${search}%`);
@@ -141,8 +137,6 @@ export const getTransactionById = asyncHandler(async (req: Request, res: Respons
 });
 
 export const getTodayTransactions = asyncHandler(async (_req: Request, res: Response) => {
-  // Use a timezone-aware query to get today's transactions
-  // This handles the Africa/Nairobi timezone correctly
   const result = await pool.query(
     `SELECT * FROM transactions 
      WHERE created_at >= CURRENT_DATE AT TIME ZONE 'Africa/Nairobi'
@@ -173,7 +167,6 @@ export const createTransaction = asyncHandler(async (req: ValidatedRequest, res:
     notes 
   } = validatedData;
   
-  // Map frontend grain types to backend types
   const grainMap: Record<string, string> = {
     'maize-1': 'maize',
     'maize-2': 'maize',
@@ -182,7 +175,6 @@ export const createTransaction = asyncHandler(async (req: ValidatedRequest, res:
   };
   const backendGrainType = grainMap[grain_type] || grain_type;
   
-  // Generate receipt number
   const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
   
   const result = await pool.query(
@@ -219,13 +211,12 @@ export const updateTransaction = asyncHandler(async (req: ValidatedRequest, res:
   const fields: string[] = [];
   const values: (string | number)[] = [];
   let paramCount = 1;
-  
-  // Skip grain_type mapping for updates to avoid type issues
-  const { someOtherVar } = req.body;
-  
+
+  // Spread validatedData to iterate over all provided fields
+  const { ...otherFields } = validatedData;
+
   Object.entries(otherFields).forEach(([key, value]) => {
     if (value !== undefined) {
-      // Convert camelCase to snake_case for database
       const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
       fields.push(`${snakeKey} = $${paramCount}`);
       values.push(value as string | number);
@@ -265,7 +256,6 @@ export const deleteTransaction = asyncHandler(async (req: Request, res: Response
   successResponse(res, null, 'Transaction deleted successfully');
 });
 
-// New endpoint: GET /api/v1/transactions/paid-recent
 export const getRecentPaidTransactions = asyncHandler(async (req: Request, res: Response) => {
   try {
     const since = req.query['since'] as string;
@@ -294,4 +284,3 @@ export const getRecentPaidTransactions = asyncHandler(async (req: Request, res: 
     errorResponse(res, 'Failed to fetch paid transactions', 500);
   }
 });
-

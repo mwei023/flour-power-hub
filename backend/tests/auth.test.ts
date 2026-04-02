@@ -1,26 +1,21 @@
 import request from 'supertest';
+import { Server } from 'http';
 import app from '../src/app';
 import { pool } from '../src/config/database';
 
 // Set test environment before importing app
-process.env.NODE_ENV = 'test';
-process.env.PORT = '0'; // Use dynamic port
+process.env['NODE_ENV'] = 'test';
+process.env['PORT'] = '0'; // Use dynamic port
 
 describe('Authentication & Security', () => {
-  let server: any;
-  let baseURL: string;
+  let server: Server;
 
   beforeAll(async () => {
     // Start server on dynamic port
-    server = app.listen(0, () => {
-      const addr = server.address();
-      if (addr && typeof addr === 'object') {
-        baseURL = `http://localhost:${addr.port}`;
-      }
-    });
-    
+    server = app.listen(0);
+
     // Wait for server to be ready
-    await new Promise(resolve => server.once('listening', resolve));
+    await new Promise<void>(resolve => server.once('listening', resolve));
     
     // Ensure database is connected
     await pool.query('SELECT 1');
@@ -33,26 +28,15 @@ describe('Authentication & Security', () => {
     }
   });
 
-  // Helper function to make requests
-  const makeRequest = async (method: string, path: string, data?: any) => {
+  // Helper to get the dynamic port
+  const getPort = (): number => {
     const addr = server.address();
-    const port = addr && typeof addr === 'object' ? addr.port : 3001;
-    const url = `http://localhost:${port}`;
-    
-    if (method === 'GET') {
-      return request(url).get(path);
-    } else if (method === 'POST') {
-      return request(url).post(path).send(data);
-    }
-    throw new Error(`Unsupported method: ${method}`);
+    return addr && typeof addr === 'object' ? addr.port : 3001;
   };
 
   describe('Public Routes', () => {
     it('should allow access to health check without authentication', async () => {
-      const addr = server.address();
-      const port = addr && typeof addr === 'object' ? addr.port : 3001;
-      
-      const response = await request(`http://localhost:${port}`)
+      const response = await request(`http://localhost:${getPort()}`)
         .get('/health')
         .expect(200);
 
@@ -60,10 +44,7 @@ describe('Authentication & Security', () => {
     });
 
     it('should allow access to root endpoint without authentication', async () => {
-      const addr = server.address();
-      const port = addr && typeof addr === 'object' ? addr.port : 3001;
-      
-      const response = await request(`http://localhost:${port}`)
+      const response = await request(`http://localhost:${getPort()}`)
         .get('/')
         .expect(200);
 
@@ -71,10 +52,7 @@ describe('Authentication & Security', () => {
     });
 
     it('should allow access to auth login endpoint without authentication', async () => {
-      const addr = server.address();
-      const port = addr && typeof addr === 'object' ? addr.port : 3001;
-      
-      const response = await request(`http://localhost:${port}`)
+      const response = await request(`http://localhost:${getPort()}`)
         .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com',
@@ -88,10 +66,7 @@ describe('Authentication & Security', () => {
 
   describe('Protected Routes', () => {
     it('should deny access to protected routes without authentication', async () => {
-      const addr = server.address();
-      const port = addr && typeof addr === 'object' ? addr.port : 3001;
-      
-      const response = await request(`http://localhost:${port}`)
+      const response = await request(`http://localhost:${getPort()}`)
         .get('/api/v1/customers')
         .expect(401);
 
@@ -100,10 +75,7 @@ describe('Authentication & Security', () => {
     });
 
     it('should deny access with invalid JWT token', async () => {
-      const addr = server.address();
-      const port = addr && typeof addr === 'object' ? addr.port : 3001;
-      
-      const response = await request(`http://localhost:${port}`)
+      const response = await request(`http://localhost:${getPort()}`)
         .get('/api/v1/customers')
         .set('Authorization', 'Bearer invalid-token')
         .expect(401);
@@ -115,27 +87,20 @@ describe('Authentication & Security', () => {
 
   describe('Security Headers', () => {
     it('should include security headers in responses', async () => {
-      const addr = server.address();
-      const port = addr && typeof addr === 'object' ? addr.port : 3001;
-      
-      const response = await request(`http://localhost:${port}`)
+      const response = await request(`http://localhost:${getPort()}`)
         .get('/health')
         .expect(200);
 
       expect(response.headers['x-content-type-options']).toBe('nosniff');
-      expect(response.headers['x-frame-options']).toBeDefined(); // May be 'DENY' or 'SAMEORIGIN'
+      expect(response.headers['x-frame-options']).toBeDefined();
       expect(response.headers['x-xss-protection']).toBeDefined();
     });
   });
 
   describe('Rate Limiting', () => {
     it('should allow reasonable number of requests', async () => {
-      const addr = server.address();
-      const port = addr && typeof addr === 'object' ? addr.port : 3001;
-      
-      // Make multiple requests to test rate limiting
       for (let i = 0; i < 5; i++) {
-        await request(`http://localhost:${port}`)
+        await request(`http://localhost:${getPort()}`)
           .get('/health')
           .expect(200);
       }
@@ -144,15 +109,12 @@ describe('Authentication & Security', () => {
 
   describe('Input Sanitization', () => {
     it('should sanitize malicious input', async () => {
-      const addr = server.address();
-      const port = addr && typeof addr === 'object' ? addr.port : 3001;
-      
       const maliciousInput = {
         name: '<script>alert("xss")</script>Normal Name',
         phone: '1234567890'
       };
 
-      const response = await request(`http://localhost:${port}`)
+      const response = await request(`http://localhost:${getPort()}`)
         .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com',
@@ -161,7 +123,6 @@ describe('Authentication & Security', () => {
         })
         .expect(401);
 
-      // The request should be processed without script tags
       expect(response.body.success).toBe(false);
     });
   });
