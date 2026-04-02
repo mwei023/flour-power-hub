@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, Download, RefreshCw, CheckCircle, XCircle, Clock, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,11 +21,7 @@ export default function MpesaPayments() {
   const [summary, setSummary] = useState<{ totalAmount: number; matchedCount: number; pendingCount: number } | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
 
-  useEffect(() => {
-    fetchMpesaData();
-  }, [currentDate]);
-
-  const fetchMpesaData = async () => {
+  const fetchMpesaData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -60,7 +56,11 @@ export default function MpesaPayments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentDate]);
+
+  useEffect(() => {
+    fetchMpesaData();
+  }, [fetchMpesaData]);
 
   useEffect(() => {
     let filtered = [...payments];
@@ -354,4 +354,3 @@ export default function MpesaPayments() {
     </div>
   );
 }
-
