@@ -1,7 +1,6 @@
 // Knex configuration for migrations
 import { Knex } from 'knex';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 const config: Knex.Config = {
@@ -12,13 +11,13 @@ const config: Knex.Config = {
     database: process.env['DB_NAME'] || 'poshomill',
     user: process.env['DB_USER'] || 'mwei',
     password: process.env['DB_PASSWORD'] || '',
-    ssl: process.env['DB_SSL'] === 'true' ? { rejectUnauthorized: false } : false,
+    ssl: { rejectUnauthorized: false },
   },
   pool: {
-    min: 2,
-    max: 20,
+    min: 0,
+    max: 2,
     idleTimeoutMillis: 30000,
-    acquireTimeoutMillis: 2000,
+    acquireTimeoutMillis: 30000,
   },
   migrations: {
     directory: './database/migrations',
@@ -30,8 +29,8 @@ const config: Knex.Config = {
     directory: './database/seeds',
     extension: 'ts',
   },
-  acquireConnectionTimeout: 60000,
-  asyncStackTraces: process.env.NODE_ENV === 'development',
+  acquireConnectionTimeout: 30000,
+  asyncStackTraces: process.env['NODE_ENV'] === 'development',
 };
 
 export default config;

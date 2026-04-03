@@ -37,7 +37,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 
 # Set environment to production
 ENV NODE_ENV=production
-ENV PORT=3001
+
 
 # Security: Run as non-root user
 USER nodejs
