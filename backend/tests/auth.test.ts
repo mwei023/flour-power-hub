@@ -16,17 +16,26 @@ describe('Authentication & Security', () => {
 
     // Wait for server to be ready
     await new Promise<void>(resolve => server.once('listening', resolve));
-    
-    // Ensure database is connected
-    await pool.query('SELECT 1');
-  });
+
+    // Ensure database is connected — fail fast instead of hanging forever
+    await Promise.race([
+      pool.query('SELECT 1'),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database connection timeout after 5s')), 5000)
+      ),
+    ]);
+  }, 15000); // 15s total beforeAll timeout
 
   afterAll(async () => {
-    await pool.end();
     if (server) {
-      server.close();
+      await new Promise<void>(resolve => server.close(() => resolve()));
     }
-  });
+    // End pool with a timeout guard so it doesn't hang on cleanup
+    await Promise.race([
+      pool.end(),
+      new Promise<void>(resolve => setTimeout(resolve, 3000)),
+    ]);
+  }, 10000); // 10s total afterAll timeout
 
   // Helper to get the dynamic port
   const getPort = (): number => {
