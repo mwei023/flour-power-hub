@@ -44,14 +44,18 @@ const Login = () => {
 
       const { token, user } = response.data.data;
 
-      // Store token and user info
+      // Update shared auth context AND localStorage
       login(token, user);
 
       // Redirect to home
-      navigate("/");
+      navigate("/", { replace: true });
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: ErrorResponse } };
-      setError(axiosError.response?.data?.message || axiosError.response?.data?.error || "Login failed. Please try again.");
+      const message = axiosError.response?.data?.message 
+        || axiosError.response?.data?.error 
+        || "Login failed. Please try again.";
+      setError(message);
+      console.error("Login error:", axiosError.response?.data);
     } finally {
       setLoading(false);
     }
@@ -107,16 +111,9 @@ const Login = () => {
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
-
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          <a href="/" className="text-primary underline hover:text-primary/90">
-            Return to Home
-          </a>
-        </div>
       </div>
     </div>
   );
 };
 
 export default Login;
-
