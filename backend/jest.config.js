@@ -17,21 +17,11 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  // Coverage thresholds disabled until test suite is built out.
-  // Re-enable and raise incrementally as tests are added:
-  //
-  // coverageThreshold: {
-  //   global: {
-  //     branches: 80,
-  //     functions: 80,
-  //     lines: 80,
-  //     statements: 80
-  //   }
-  // },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   verbose: true,
   testTimeout: 30000,
+  forceExit: true,  // Force Jest to exit after all tests complete
 };
