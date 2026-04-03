@@ -2,9 +2,9 @@
  * Authentication Hook
  *
  * Provides authentication state and helpers for checking if user is logged in.
+ * Uses React Context to share state across all components.
  */
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 
 interface User {
   id: number;
@@ -19,7 +19,15 @@ interface AuthState {
   user: User | null;
 }
 
-export function useAuth() {
+interface AuthContextType extends AuthState {
+  login: (token: string, user: User) => void;
+  logout: () => void;
+}
+
+// Shared context — single source of truth for all components
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     isLoading: true,
@@ -27,74 +35,53 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('auth_token');
-      const userStr = localStorage.getItem('user');
+    const token = localStorage.getItem('auth_token');
+    const userStr = localStorage.getItem('user');
 
-      if (token && userStr) {
-        try {
-          const user = JSON.parse(userStr) as User;
-          setAuthState({
-            isAuthenticated: true,
-            isLoading: false,
-            user,
-          });
-        } catch {
-          // Invalid user data
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
-          setAuthState({
-            isAuthenticated: false,
-            isLoading: false,
-            user: null,
-          });
-        }
-      } else {
-        setAuthState({
-          isAuthenticated: false,
-          isLoading: false,
-          user: null,
-        });
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr) as User;
+        setAuthState({ isAuthenticated: true, isLoading: false, user });
+      } catch {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        setAuthState({ isAuthenticated: false, isLoading: false, user: null });
       }
-    };
-
-    // Small delay to ensure hydration
-    const timer = setTimeout(checkAuth, 50);
-    return () => clearTimeout(timer);
+    } else {
+      setAuthState({ isAuthenticated: false, isLoading: false, user: null });
+    }
   }, []);
 
   const login = useCallback((token: string, user: User) => {
     localStorage.setItem('auth_token', token);
     localStorage.setItem('user', JSON.stringify(user));
-    setAuthState({
-      isAuthenticated: true,
-      isLoading: false,
-      user,
-    });
+    setAuthState({ isAuthenticated: true, isLoading: false, user });
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
-    setAuthState({
-      isAuthenticated: false,
-      isLoading: false,
-      user: null,
-    });
+    setAuthState({ isAuthenticated: false, isLoading: false, user: null });
   }, []);
 
-  return {
-    ...authState,
-    login,
-    logout,
-  };
+  return (
+    <AuthContext.Provider value={{ ...authState, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+  return ctx;
 }
 
 /**
  * Hook to track onboarding completion
  */
 export function useOnboarding() {
-  const [isCompleted, setIsCompleted] = useState(true); // Default to true to avoid flash
+  const [isCompleted, setIsCompleted] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -102,8 +89,6 @@ export function useOnboarding() {
     const checkOnboarding = () => {
       const completed = localStorage.getItem('onboarding-completed');
       const authToken = localStorage.getItem('auth_token');
-
-      // Only show onboarding if user is logged in and hasn't completed it
       if (authToken && !completed) {
         setIsCompleted(false);
         setShowOnboarding(true);
@@ -111,10 +96,8 @@ export function useOnboarding() {
         setIsCompleted(true);
         setShowOnboarding(false);
       }
-
       setIsLoading(false);
     };
-
     const timer = setTimeout(checkOnboarding, 100);
     return () => clearTimeout(timer);
   }, []);

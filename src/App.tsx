@@ -16,7 +16,7 @@ import MpesaPayments from "./pages/MpesaPayments";
 import Login from "./pages/Login";
 import { PWAInstallPrompt, PWAUpdateNotification, OnboardingGuide } from "./components/pwa";
 import { usePWAInstall } from "./hooks/usePWAInstall";
-import { useAuth, useOnboarding } from "./hooks/useAuth";
+import { AuthProvider, useAuth, useOnboarding } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
 
@@ -25,7 +25,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return null; // Show nothing while loading
+    return null;
   }
   
   if (!isAuthenticated) {
@@ -40,7 +40,7 @@ function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return null; // Show nothing while loading
+    return null;
   }
   
   if (isAuthenticated) {
@@ -58,20 +58,17 @@ function PWAFeatures() {
   const [{ isInstallable, isUpdateAvailable, isInstalled }, { promptInstall, updateApp }] = usePWAInstall();
 
   useEffect(() => {
-    // Wait for auth and onboarding to finish loading
     if (!authLoading && !onboardingLoading) {
       setIsLoaded(true);
     }
   }, [authLoading, onboardingLoading]);
 
-  // Only show PWA features when authenticated
   if (!isLoaded || !isAuthenticated) {
     return null;
   }
 
   return (
     <>
-      {/* PWA Install Prompt - Show only if installable and not already installed */}
       {isInstallable && !isInstalled && (
         <PWAInstallPrompt 
           onInstall={async () => {
@@ -81,7 +78,6 @@ function PWAFeatures() {
             }
           }}
           onDismiss={() => {
-            // Don't show again for 24 hours if dismissed
             localStorage.setItem('pwa-install-dismissed', 'true');
             const timeout = setTimeout(() => {
               localStorage.removeItem('pwa-install-dismissed');
@@ -90,8 +86,6 @@ function PWAFeatures() {
           }}
         />
       )}
-
-      {/* PWA Update Notification - Show when update is available */}
       {isUpdateAvailable && (
         <PWAUpdateNotification 
           onUpdate={updateApp}
@@ -100,8 +94,6 @@ function PWAFeatures() {
           }}
         />
       )}
-
-      {/* Onboarding Guide - Show for first-time users */}
       {showOnboarding && (
         <OnboardingGuide 
           onComplete={() => {
@@ -120,53 +112,54 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          {/* PWA Features - Only shows when logged in */}
-          <PWAFeatures />
-
-          <Routes>
-            <Route path="/login" element={<LoginRoute />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            } />
-            <Route path="/new-transaction" element={
-              <ProtectedRoute>
-                <NewTransaction />
-              </ProtectedRoute>
-            } />
-            <Route path="/customers" element={
-              <ProtectedRoute>
-                <Customers />
-              </ProtectedRoute>
-            } />
-            <Route path="/expenses" element={
-              <ProtectedRoute>
-                <Expenses />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } />
-            <Route path="/history" element={
-              <ProtectedRoute>
-                <History />
-              </ProtectedRoute>
-            } />
-            <Route path="/tenders" element={
-              <ProtectedRoute>
-                <Tenders />
-              </ProtectedRoute>
-            } />
-            <Route path="/mpesa" element={
-              <ProtectedRoute>
-                <MpesaPayments />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          {/* AuthProvider wraps everything so all components share one auth state */}
+          <AuthProvider>
+            <PWAFeatures />
+            <Routes>
+              <Route path="/login" element={<LoginRoute />} />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              } />
+              <Route path="/new-transaction" element={
+                <ProtectedRoute>
+                  <NewTransaction />
+                </ProtectedRoute>
+              } />
+              <Route path="/customers" element={
+                <ProtectedRoute>
+                  <Customers />
+                </ProtectedRoute>
+              } />
+              <Route path="/expenses" element={
+                <ProtectedRoute>
+                  <Expenses />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="/history" element={
+                <ProtectedRoute>
+                  <History />
+                </ProtectedRoute>
+              } />
+              <Route path="/tenders" element={
+                <ProtectedRoute>
+                  <Tenders />
+                </ProtectedRoute>
+              } />
+              <Route path="/mpesa" element={
+                <ProtectedRoute>
+                  <MpesaPayments />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
