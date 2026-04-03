@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import apiClient from "@/lib/api";
 
@@ -43,8 +44,7 @@ const Login = () => {
       const { token, user } = response.data.data;
 
       // Store token and user info
-      localStorage.setItem("auth_token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      login(token, user);
 
       // Redirect to home
       navigate("/");
