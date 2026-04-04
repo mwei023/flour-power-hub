@@ -128,7 +128,7 @@ app.use(`${API_PREFIX}/${API_VERSION}/transactions`, transactionRoutes);
 app.use(`${API_PREFIX}/${API_VERSION}/expenses`, expenseRoutes);
 app.use(`${API_PREFIX}/${API_VERSION}/tenders`, tenderRoutes);
 app.use(`${API_PREFIX}/${API_VERSION}/reports`, reportRoutes);
-app.use(`${API_PREFIX}/${API_VERSION}/mpesa-payments`, mpesaRoutes);
+app.use(`${API_PREFIX}/${API_VERSION}/payments`, mpesaRoutes);
 
 // Root endpoint
 app.get('/', (_req, res) => {

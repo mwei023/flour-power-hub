@@ -698,7 +698,7 @@ export const registerC2BUrl = asyncHandler(async (_req: Request, res: Response) 
   try {
     const accessToken = await getAccessToken();
 
-    const callbackUrl = `${process.env['API_BASE_URL'] || 'https://flour-power-hub.onrender.com'}/api/v1/mpesa-payments/webhook`;
+    const callbackUrl = `${process.env['API_BASE_URL'] || 'https://flour-power-hub.onrender.com'}/api/v1/payments/webhook`;
 
     const requestBody = {
       ShortCode: MPESA_CONFIG.shortcode,
