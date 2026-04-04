@@ -691,3 +691,46 @@ export const getMpesaSummary = asyncHandler(async (req: Request, res: Response) 
     pendingAmount: parseFloat(stats.total_amount) - parseFloat(stats.matched_amount),
   });
 });
+// ==================== C2B URL REGISTRATION ====================
+
+// Register C2B webhook URL with Safaricom (call once)
+export const registerC2BUrl = asyncHandler(async (_req: Request, res: Response) => {
+  try {
+    const accessToken = await getAccessToken();
+
+    const callbackUrl = `${process.env['API_BASE_URL'] || 'https://flour-power-hub.onrender.com'}/api/v1/mpesa-payments/webhook`;
+
+    const requestBody = {
+      ShortCode: MPESA_CONFIG.shortcode,
+      ResponseType: 'Completed',
+      ConfirmationURL: callbackUrl,
+      ValidationURL: callbackUrl,
+    };
+
+    console.log('📝 Registering C2B URL:', callbackUrl);
+
+    const response = await axios.post(
+      `${MPESA_CONFIG.baseUrl}${MPESA_CONFIG.c2bRegisterUrl}`,
+      requestBody,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('✅ C2B URL registered:', response.data);
+
+    successResponse(res, {
+      confirmationUrl: callbackUrl,
+      validationUrl: callbackUrl,
+      responseCode: response.data.ResponseCode,
+      responseDesc: response.data.ResponseDescription,
+    }, 'C2B URL registered successfully');
+  } catch (error: unknown) {
+    console.error('C2B registration error:', error);
+    const axiosError = error as { response?: { data?: { errorMessage?: string } } };
+    errorResponse(res, axiosError.response?.data?.errorMessage || 'Failed to register C2B URL', 500);
+  }
+});

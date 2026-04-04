@@ -18,6 +18,9 @@ import { authenticateJWT, auditLog, requireBoss } from '../middleware/auth';
 const router = Router();
 
 // ==================== C2B WEBHOOK ====================
+// Register C2B URL with Safaricom (call once to set up)
+router.post('/register-c2b', authenticateJWT, requireBoss, registerC2BUrl);
+
 // M-Pesa webhook endpoint (public - no auth required, uses Safaricom credentials)
 router.post('/webhook', handleC2BNotification);
 
