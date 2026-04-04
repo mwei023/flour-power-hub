@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { 
+  registerC2BUrl,
   handleC2BNotification, 
   initiateStkPush,
   checkStkStatus,
